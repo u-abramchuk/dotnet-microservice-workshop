@@ -19,6 +19,7 @@ namespace Workshop
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+                .UseHealthChecks("/health")
                 .UseStartup<Startup>();
     }
 }
