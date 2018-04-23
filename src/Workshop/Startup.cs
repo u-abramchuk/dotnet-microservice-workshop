@@ -14,8 +14,6 @@ namespace Workshop
 {
     public class Startup
     {
-        private static bool SigtermReceived { get; set; }
-
         public IConfiguration Configuration { get; }
 
         public Startup(IConfiguration configuration)
@@ -29,21 +27,14 @@ namespace Workshop
         {
             services.AddHealthChecks(checks =>
             {
-                checks.AddCheck("graceful-shutdown", () => SigtermReceived ? HealthCheckResult.Unhealthy("Shutting down") : HealthCheckResult.Healthy("OK"), TimeSpan.FromMilliseconds(100));
+                checks.AddCheck("graceful-shutdown", () => GracefulShutdown.SigtermReceived ? HealthCheckResult.Unhealthy("Shutting down") : HealthCheckResult.Healthy("OK"), TimeSpan.FromMilliseconds(100));
             });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime appLifetime)
         {
-            appLifetime.ApplicationStopping.Register(() =>
-            {
-                SigtermReceived = true;
-
-                var timeout = Configuration.GetValue<int?>("GRACEFUL_SHUTDOWN_TIMEOUT") ?? 2;
-
-                Thread.Sleep(timeout * 1000);
-            });
+            appLifetime.ShutdownGracefully(Configuration.GetValue<int?>("GRACEFUL_SHUTDOWN_TIMEOUT") ?? 2);
 
             if (env.IsDevelopment())
             {
